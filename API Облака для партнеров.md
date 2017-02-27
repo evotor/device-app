@@ -5,6 +5,7 @@
 * [2. Получение схемы продуктов для магазина](#002)
 * [3. Добавление конкретных значений экстра в товары для магазина](#003)
 * [4. Получение конкретных значений экстра товаров в магазине](#004)
+* [5. Получение документов чека и их экстра данных](#005)
 
 <a name="001"></a>
 ### 1. Изменение схемы продуктов для магазина
@@ -109,6 +110,42 @@ curl - X POST - H "Content-Type: application/json" -
 curl - XGET\ -
     H "Content-Type: application/json;charset=utf-8" -
     H "X-Authorization: {токен}"
+```
+Статусы ответов:
+```
+200 - Успех 
+400 - Ошибка "Bad Request"
+401 - Ошибка "Unauthorized"
+```
+
+<a name="005"></a>
+### 5. Получение документов чека и их экстра данных
+
+Запрос: https://test-api.evotor.ru/api/v1/inventories/stores/{store-uuid}/documents?deviceUuid={device_uuid}}&types=OPEN_SESSION%2CCLOSE_SESSION&ltCloseDate=2017-02-22T20%3A59%3A59.500%2B0000&gtCloseDate=2017-02-18T21%3A00%3A00.000%2B0000
+```
+GET
+headers = {
+    Content - Type = [application / json;charset = UTF - 8];
+    accept - encoding = [gzip];
+    x - authorization = [{
+        user - application1 - token
+    }]
+};
+req payload = ;
+resp status = 200;
+resp payload = [{
+    "uuid": "5285ab1b-2ecb-4614-87f7-99b1486a04fe",
+    "type": "OPEN_SESSION",
+    "deviceId": "352398080047279",
+    "deviceUuid": "8ffbe447-79d0-4fd9-823a-6da96d7f0be9",
+    ...стандарнтые поля модели документа Эвотор...
+    "extras": {
+        "{application1-uuid}": {
+            валидный_джейсон_со_значениями_эстра,
+            application1 - uuid соответсвующий user - application1 - token - у
+        }
+    }
+}]
 ```
 Статусы ответов:
 ```
