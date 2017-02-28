@@ -25,9 +25,11 @@
 `client.yaml` — файл с описанием разрешений для приложения, указаниями файлов, адреса view, для отображения и т.д.
 
 Папка `client`:
-* `daemons` — папка, в которой находятся файлы js, которые будут выполнятся в фоне (в примере отслеживаются события кассы);
+* `daemons` — папка, в которой находятся файлы js, которые будут выполнятся асинхронно (в примере отслеживаются события кассы) 
+*Примечание!* При отправке события в daemon из терминала, daemons не передает callback в приложение терминала, он работает только с внутренними данными самого приложения, т.е. результат работы daemon необходимо сохранять отдельно, например, в storage, чтобы затем им воспользоваться;
 * `uiPlugins` — папка, в которой находятся файлы js, которые выполняются перед отображением `WebView` (может не отображаться);
 * `view` — папка с html файлами, стилями, скриптами и т.д., которые будут отображены в `WebView`.
+*Примечание!* Вызывать `view` не обязательно если нет необходимости отображать UI, вызвать метод интерфейса `navigation.pushNext()` для передачи результатов в терминал необходимо, даже если WebView не вызывается;
 
 Файл архива клиента распаковывается в папку `assets` андроид приложения.  
 В корне должен находиться файл с описанием структуры проекта `client.yaml`.
@@ -54,7 +56,6 @@ daemons:
       - evo.receipt.productRemoved
       - evo.receipt.closed
       - evo.receipt.clear
-      - app.suggestion.used
     behavior: check-daemon.js
 plugins:
   - name: discount
@@ -67,64 +68,53 @@ views:
   - name: discount-loader
     header: "Подождите"
     source: client/views/discount-loader/view.html
-    scripts:
-      - no-script
     styles:
       - "*.css"
   - name: launcher
     header: "Подождите"
     source: client/views/discount-loader/view.html
-    scripts:
-      - no-script
     styles:
       - "*.css"
 ```
 *Где:*  
-`version: 2` — Код версии приложения  
-`versionName: "1.0.1"` — Версия приложения  
-`packageName: Test` — Имя пакета  
-`version: 2` — Код версии приложения  
-`versionName: "1.0.1"` — Версия приложения  
+`version: 2` — Код версии приложения (инкремент этого параметра значит, что приложение изменилось и его необходимо обновить на терминалах)  
+`versionName: "1.0.1"` — Версия приложения (версия служит просто для отображения пользователю, можно писать что угодно) 
+`packageName: org.example.myApp` — Имя пакета (желательно использовать при наименовании правила соглашения об именовании – https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html)  
 `packageName: Test` — Имя пакета  
 `appName: "testApp"` — Отображаемое пользователю имя приложения  
 `appUUID: "2e6dc4b8-fdac-48c1-8a1a-ade402863947"` — UUID приложения  
-`iconColor: "#0f70b7"` — Цвет иконки, если она размещена на рабочем столе    
-`capabilities:`  
+`iconColor: "#0f70b7"` — Цвет иконки приложения интеграции на терминале Evotor, если она размещена на рабочем столе (см. описание `views:`, чтобы поместить иконку приложения на главный экран терминала)   
+`capabilities:`  — Разрешения на использование интерфейсов, которые запрашивает приложение
 `  - inventory`  
 `  - storage`  
 `  - http`  
 `  - event-bus`  
 `  - receipts`  
-`daemons:`  
+`daemons:` — Процессы-демоны (скрипт, реагирующший на события, указанные в списке events) 
 `  - name: check` — Имя  
 `    events:` — События, на которые он подписан  
-`      - evo.receipt.opened`  
-`      - evo.receipt.productAdded`  
-`      - evo.receipt.productRemoved`  
-`      - evo.receipt.closed`  
-`      - evo.receipt.clear`  
-`      - app.suggestion.used`  
-`    behavior: check-daemon.js`  
-`plugins:`  
+`      - evo.receipt.opened` — чек открыт
+`      - evo.receipt.productAdded` — товар добавлен
+`      - evo.receipt.productRemoved` —  товар удален
+`      - evo.receipt.closed` — чек закрыт
+`      - evo.receipt.clear` — чек удален
+`    behavior: check-daemon.js` — скрипт, который будет запущен как реакция на событие демонов
+`plugins:` — собирает и подготавливает данные для отображения пользователя и вызывает `WebView` (реагирует на события, указанные в списке moments) 
 `  - name: discount` — Имя  
 `    moments:` — События, на которые он подписан  
-`    - evo.payments.process`  
-`    - evo.payments.beforePrintReceipt`  
-`    point: before`  
-`    behavior: before-receipt-fixed.js`  
-`views:`  
-`  - name: discount-loader`  
-`    header: "Подождите"`  
-`    source: client/views/discount-loader/view.html`  
-`    scripts:` — список скриптов которые должны быть подключены  
-`      - no-script`  
+`    - evo.payments.process` — переход на экран оплаты чека (переход к оплате чека), на этом этапе чек уже сформирован   
+`    - evo.payments.beforePrintReceipt` —  когда оплата уже проведена, а печать еще не началась
+`    point: before` — признак вызова plugins до завершения события moments (пока работает только before)  
+`    behavior: before-receipt-fixed.js` — скрипт который будет запускаться  
+`views:` — список html загружаются внутрь `WebView`, которые затем можно отобразить пользователю в UI    
+`  - name: karamba` — Любое название `view`, по которому к нему можно обратиться
+`    header: "Подождите"` — Заголовок окна 
+`    source: client/views/discount-loader/view.html` — Полный путь к html файлу  
 `    styles:` — список стилей которые должны быть подключены  
 `      - "*.css"` — может подключить все файлы  
-`  - name: launcher` — Launcher — обязательное view, если приложение на главном экране  
+`  - name: launcher` — Если необходимо запускать WebView с главного экрана, необходимо в названии написать `launcher`, но он может быть только один (только одна иконка на главном экране приложения) 
 `    header: "Подождите"` — Заголовок, при отображении в `WebView`  
-`    source: client/views/discount-loader/view.html`  
-`    scripts:`  
-`      - no-script`  
+`    source: client/views/discount-loader/view.html` — Полный путь к html файлу   
 `    styles:`  
 `      - "*.css"`  
 
@@ -137,6 +127,8 @@ views:
 В начале js скрипта необходимо получить этот объект с помощью:
 
 ` var http = require('http')`
+
+И добавить в `client.yaml` соответствующий `capability`.
 
 Далее в коде, после инициализации, можно вызывать метод этого объекта для отправки запроса, например:
 ```
@@ -151,9 +143,9 @@ function generateSuggestions(items) {
 ```
 *Где:*  
 `  var response = http.send({       ` — Вызов метода  
-`    method : "POST",               ` — Тип запроса  
-`    path : "recommendations",      ` — Путь на сервере  
-`    body : items                   ` — Тело запроса  
+`    method : "POST",               ` — Тип запроса (POST/GET/PUT/DELETE/HEAD)  
+`    path : "recommendations",      ` — URL на сервере
+`    body : items                   ` — Тело запроса (тип данных для `WebView`: только строка, а в `Demons` или `UIPlugin` или любой другой, который вы укажете)  
 `  var jsonObject = JSON.parse(response)  ` — В ответе получаем строку, которую приводим к JSON объекту  
                                               (в следующей версии будет передаваться сразу объект)  
 
@@ -165,7 +157,7 @@ function generateSuggestions(items) {
 ```
 pushView(...)
 ```
-куда передается адрес html страницы для открытия, где поддерживается использование css, javascript.  
+куда передается полный путь к html файлу страницы из `view.source` для открытия, где поддерживается использование css, javascript.  
 Работа с Java интерфейсами внутри `WebView` несколько отличается от работы с ними в процессах-демонах:  
 Доступные интерфейсы в `WebView`:
 
@@ -200,7 +192,7 @@ pushView
 `pushNext()` — используется для перехода к следующему экрану:  
 При открытом `WebView` — закрывает его и возвращает пользователя в EvoPos, при этом в кассу передается стек операций, который представляет из себя набор действий: добавление товара в чек, удаление товара из чека, применение скидки к чеку или к отдельно выбранному товару.
 
-`pushView(String viewLocation, String data)` — где:
+`pushView(String name, String data)` — где:
 * `viewLocation` — адрес html страницы для открытия в `WebView`
 * `data` — строка для данных, которые должны быть переданы в `WebView`, обычно используется json формат  
 
@@ -338,7 +330,7 @@ logger.log(value)
 Для получения всего чека используем:
 
 `receipt.getReceipt()`
-Возвращает строку в JSON формате:
+Возвращает строку в JSON формате (формат данных содержимого json - строки) :
 ```
  {
     "receiptData": {
