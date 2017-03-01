@@ -263,8 +263,9 @@ function getProduct(productUID){
     }
 ```
 Результатом работы функции будет JSON объект в строковом представлении, вида:
-```
-{
+
+```json
+{ 
   "ID":"136",
   "UUID":"1196da34-e4a8-4915-8e92-bd7792875d76",
   "CODE":"4",
@@ -333,7 +334,7 @@ logger.log(value)
 
 `receipt.getReceipt()`
 Возвращает строку в JSON формате (формат данных содержимого json - строки) :
-```
+```json
  {
     "receiptData": {
         "totalSum": "218.50",
